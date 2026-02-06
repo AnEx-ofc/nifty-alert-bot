@@ -1,0 +1,36 @@
+# nifty_check.yml
+name: Nifty Smart Alert
+
+on:
+  schedule:
+    # Runs every 15 minutes from 9:15 AM to 3:30 PM IST (Mon-Fri)
+    # Cron uses UTC time (IST - 5:30)
+    - cron: '*/15 3-10 * * 1-5'
+  
+  # Allows manual testing button
+  workflow_dispatch:
+
+jobs:
+  check_market:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip' # <--- Auto-Caches dependencies to save minutes!
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Alert Script
+        env:
+          # This reads the secret if you set it in Settings
+          TOPIC_NAME: ${{ secrets.TOPIC_NAME }}
+          TEST_MODE: false # Optional: Set to "true" for testing
+        run: python main.py
