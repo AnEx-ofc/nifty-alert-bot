@@ -5,10 +5,13 @@ import os
 import pytz
 from datetime import datetime
 
+PERIOD = "3y" # Lookback period for ATH calculation (e.g., "1y", "3y", "5y")
+
 # --- CONFIGURATION ---
 # 1. Enter your Topic Name below OR use GitHub Secrets (Recommended)
 TOPIC_NAME = os.environ.get("TOPIC_NAME", "nifty_alert_test_07121996") 
 TEST_MODE = os.environ.get("TEST_MODE", "false").lower() == "true" or "--test" in os.sys.argv
+NO_NOTIFY = os.environ.get("NO_NOTIFY", "false").lower() == "true" or "--no-notify" in os.sys.argv
 # ---------------------
 
 def send_notification(title, message, priority="default"):
@@ -38,7 +41,7 @@ def check_market():
     
     print("Fetching market data...")
     # 1. Get 1 Year History to find the True All-Time High (ATH)
-    history = yf.download(ticker, period="3y", interval="1wk", progress=False)
+    history = yf.download(ticker, period=PERIOD, interval="1wk", progress=False)
     
     if history.empty:
         print("Error: No data fetched.")
@@ -49,12 +52,17 @@ def check_market():
     
     # 2. Get Live Price (Latest minute data)
     live_data = yf.download(ticker, period="1d", interval="1m", progress=False)
+    if live_data.empty:
+        print("Error: No live data fetched.")
+        return
     
     # Fallback if live data is empty (e.g., pre-market)
-    current_price = float((live_data['Close'].iloc[-1] if not live_data.empty else history['Close'].iloc[-1]).iloc[0])
+    current_price = float((live_data['Close'].iloc[-1]).iloc[0])
+    todays_low = float(live_data['Low'].min().iloc[0])
     
     # 3. Calculate Drawdown Percentage
     drop_pct = ((current_price - ath_price) / ath_price) * 100.0
+    lowest_drop_pct = ((todays_low - ath_price) / ath_price) * 100.0
     
     # Time for log
     ist = pytz.timezone('Asia/Kolkata')
@@ -67,33 +75,39 @@ def check_market():
     # --- ALERT LOGIC ---
     # Change -5.0 to -0.01 if you want to test it TODAY
     
-    if TEST_MODE:
-        title = f"🚨 TEST ALERT: {drop_pct:.2f}%"
-        msg = f"Current: {current_price:.0f}\nATH: {ath_price:.0f}\nTime: {now_ist}"
-        send_notification(title, msg, priority="high")
+    msg_base = f"Time: {now_ist}\nCurrent: {current_price:.0f}\nToday's Low: {todays_low:.0f}\n{PERIOD}'s ATH: {ath_price:.0f}\nDrop: {drop_pct:.2f}%\nLowest Drop: {lowest_drop_pct:.2f}%"
     
-    elif drop_pct <= -5.0:
-        title = f"🚨 Nifty Crash Alert: {drop_pct:.2f}%"
-        msg = f"Current: {current_price:.0f}\nATH: {ath_price:.0f}\nTime: {now_ist}"
+    if TEST_MODE:
+        title = f"🚨 TEST ALERT: {lowest_drop_pct:.2f}%"
+        msg = f"{msg_base}\nThis is a test notification."
         send_notification(title, msg, priority="high")
         
-    elif drop_pct <= -10.0:
-        title = f"💣 MARKET CRASH: {drop_pct:.2f}%"
-        msg = f"Current: {current_price:.0f}\nDEPLOY CAPITAL NOW!"
+    if NO_NOTIFY:
+        print("🚫 NO_NOTIFY is set to true. Skipping notification.")
+        return
+    
+    if lowest_drop_pct <= -5.0:
+        title = f"🚨 Nifty Crash Alert: {lowest_drop_pct:.2f}%"
+        msg = f"{msg_base}\nMarket is dropping! Look for opportunities."
+        send_notification(title, msg, priority="high")
+        
+    elif lowest_drop_pct <= -10.0:
+        title = f"💣 MARKET CRASH: {lowest_drop_pct:.2f}%"
+        msg = f"{msg_base}\nMarket is crashing! Consider buying the dip."
         send_notification(title, msg, priority="urgent")
         
-    elif drop_pct <= -15.0:
-        title = f"🔥 MARKET MELTDOWN: {drop_pct:.2f}%"
-        msg = f"Current: {current_price:.0f}\nALL HANDS ON DECK!"
+    elif lowest_drop_pct <= -15.0:
+        title = f"🔥 MARKET MELTDOWN: {lowest_drop_pct:.2f}%"
+        msg = f"{msg_base}\n Market is melting down! Consider buying the dip."
         send_notification(title, msg, priority="emergency")     
     
-    elif drop_pct <= -20.0:
-        title = f"💥 MARKET APOCALYPSE: {drop_pct:.2f}%"
-        msg = f"Current: {current_price:.0f}\nSELL EVERYTHING!"
+    elif lowest_drop_pct <= -20.0:
+        title = f"💥 MARKET APOCALYPSE: {lowest_drop_pct:.2f}%"
+        msg = f"{msg_base}\nMarket is in freefall! Consider buying the dip."
         send_notification(title, msg, priority="critical")
         
     else:
-        print(f"Market is safe (Down {drop_pct:.2f}%). No alert sent.")
+        print(f"Market is safe (Down {lowest_drop_pct:.2f}%). No alert sent.")
 
 if __name__ == "__main__":
     check_market()

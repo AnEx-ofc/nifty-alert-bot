@@ -15,6 +15,11 @@ on:
         required: false
         default: 'false'
         type: boolean
+      no_notify:
+        description: 'Run without sending notifications?'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   check_market:
@@ -39,4 +44,5 @@ jobs:
           # This reads the secret if you set it in Settings
           TOPIC_NAME: ${{ secrets.TOPIC_NAME }}
           TEST_MODE: ${{ github.event.inputs.test_mode || 'false' }} # Passes the manual input to the script
+          NO_NOTIFY: ${{ github.event.inputs.no_notify || 'false' }} # Passes the manual input to the script
         run: python main.py
