@@ -32,5 +32,5 @@ jobs:
         env:
           # This reads the secret if you set it in Settings
           TOPIC_NAME: ${{ secrets.TOPIC_NAME }}
-          TEST_MODE: false # Optional: Set to "true" for testing
+          TEST_MODE: ${{ github.event.inputs.test_mode }}
         run: python main.py

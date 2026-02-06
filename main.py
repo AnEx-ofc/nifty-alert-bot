@@ -8,6 +8,7 @@ from datetime import datetime
 # --- CONFIGURATION ---
 # 1. Enter your Topic Name below OR use GitHub Secrets (Recommended)
 TOPIC_NAME = os.environ.get("TOPIC_NAME", "nifty_alert_test_07121996") 
+TEST_MODE = os.environ.get("TEST_MODE", "false").lower() == "true" or "--test" in os.sys.argv
 # ---------------------
 
 def send_notification(title, message, priority="default"):
@@ -66,7 +67,7 @@ def check_market():
     # --- ALERT LOGIC ---
     # Change -5.0 to -0.01 if you want to test it TODAY
     
-    if os.environ.get("TEST_MODE", "false").lower() == "true" or "--test" in os.sys.argv:
+    if TEST_MODE:
         title = f"🚨 TEST ALERT: {drop_pct:.2f}%"
         msg = f"Current: {current_price:.0f}\nATH: {ath_price:.0f}\nTime: {now_ist}"
         send_notification(title, msg, priority="high")
