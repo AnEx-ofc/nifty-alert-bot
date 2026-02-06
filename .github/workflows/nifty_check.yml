@@ -9,6 +9,11 @@ on:
   
   # Allows manual testing button
   workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Run Test? (true/false)'
+        required: false
+        default: 'false'
 
 jobs:
   check_market:
@@ -32,5 +37,5 @@ jobs:
         env:
           # This reads the secret if you set it in Settings
           TOPIC_NAME: ${{ secrets.TOPIC_NAME }}
-          TEST_MODE: ${{ github.event.inputs.test_mode }}
+          TEST_MODE: ${{ github.event.inputs.test_mode || 'false' }} # Passes the manual input to the script
         run: python main.py
