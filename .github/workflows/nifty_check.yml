@@ -11,9 +11,10 @@ on:
   workflow_dispatch:
     inputs:
       test_mode:
-        description: 'Run Test? (true/false)'
+        description: 'Run in Test Mode?'
         required: false
         default: 'false'
+        type: boolean
 
 jobs:
   check_market:
